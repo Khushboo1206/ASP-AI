@@ -64,8 +64,9 @@ console.log("PRISMA DEBUG:", {
 });
  return {sucess:true,...result};
 } catch (error){
-    console.error("Error updating user and industry:", error.message);
-    throw new Error("Failed to updateUser profile" + error.message);
+    console.error("Error updating user and industry:", error);
+throw error;
+
 } 
 }
 
