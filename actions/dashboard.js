@@ -76,118 +76,307 @@
 
 
 
-"use server";
+// "use server";
 
+// import { db } from "@/lib/prisma";
+// import { auth } from "@clerk/nextjs/server";
+
+// /* ================================
+//    CALL GEMINI THROUGH API ROUTE
+// ================================ */
+
+// export const generateAIInsights = async (industry) => {
+
+//   const prompt = `
+// Analyze the current state of the ${industry} industry and provide insights in ONLY the following JSON format:
+
+// {
+//   "salaryRanges": [
+//     { "role": "string", "min": number, "max": number, "median": number, "location": "string" }
+//   ],
+//   "growthRate": number,
+//   "demandLevel": "High" | "Medium" | "Low",
+//   "topSkills": ["skill1", "skill2"],
+//   "marketOutlook": "Positive" | "Neutral" | "Negative",
+//   "keyTrends": ["trend1", "trend2"],
+//   "recommendedSkills": ["skill1", "skill2"]
+// }
+
+// IMPORTANT:
+// Return ONLY JSON.
+// No markdown.
+// No explanation.
+// Include at least 5 roles, skills and trends.
+// `;
+
+//   const baseUrl =
+//     process.env.APP_URL || "http://localhost:3000";
+
+//   const res = await fetch(`${baseUrl}/api/gemini`, {
+//     method: "POST",
+//     cache: "no-store",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify({ prompt }),
+//   });
+
+//   let data;
+
+//   try {
+//     data = await res.json();
+//   } catch (err) {
+//     console.error("Gemini invalid JSON response");
+//     throw new Error("Gemini response parsing failed");
+//   }
+
+//   // if (!res.ok) {
+//   //   console.error("Gemini API Route Error:", data);
+//   // }
+
+//   if (!res.ok) {
+//   console.error("❌ Gemini API Route Error:", data);
+
+//   throw new Error(
+//     data?.error?.message ||
+//     JSON.stringify(data) ||
+//     "Gemini API failed"
+//   );
+// }
+// if (!data?.result) {
+//   console.error("❌ Empty Gemini response:", data);
+//   throw new Error("Gemini returned empty response");
+// }
+
+//   // if (!data?.result) {
+//   //   throw new Error("Empty Gemini response");
+//   // }
+
+//   const cleanedText = data.result
+//     .replace(/```(?:json)?/g, "")
+//     .replace(/```/g, "")
+//     .trim();
+
+//   let parsed;
+
+//   try {
+//     parsed = JSON.parse(cleanedText);
+//   } catch (err) {
+//     console.error("Invalid Gemini JSON:", cleanedText);
+//     throw new Error("Gemini returned invalid JSON");
+//   }
+
+//   return parsed;
+// };
+
+// /* ================================
+//    GET INDUSTRY INSIGHTS
+// ================================ */
+
+// export async function getIndustryInsights() {
+
+//   const { userId } = await auth();
+//   if (!userId) throw new Error("Unauthorized");
+
+//   const user = await db.user.findUnique({
+//     where: { clerkUserId: userId },
+//     include: { industryInsight: true },
+//   });
+
+//   if (!user) throw new Error("User not found");
+
+//   // Generate only if missing
+//   if (!user.industryInsight) {
+
+//     const insights = await generateAIInsights(user.industry);
+
+//     const industryInsight = await db.industryInsight.create({
+//       data: {
+//         industry: user.industry,
+//         ...insights,
+//         nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+//       },
+//     });
+
+//     return industryInsight;
+//   }
+
+//   return user.industryInsight;
+// }
+
+// /* ================================
+//    UPDATE USER PROFILE
+// ================================ */
+
+// export async function updateUser(data) {
+
+//   const { userId } = await auth();
+//   if (!userId) throw new Error("Unauthorized");
+
+//   const user = await db.user.findUnique({
+//     where: { clerkUserId: userId },
+//   });
+
+//   if (!user) throw new Error("User not found");
+
+//   try {
+
+//     // ✅ Check if industry insight exists
+//     let industryInsight = await db.industryInsight.findUnique({
+//       where: { industry: data.industry },
+//     });
+
+//     // ✅ Generate AI OUTSIDE transaction
+//     let insights = null;
+
+//     if (!industryInsight) {
+//       insights = await generateAIInsights(data.industry);
+//     }
+
+//     // ✅ Only DB operations inside transaction
+//     const result = await db.$transaction(async (tx) => {
+
+//       if (!industryInsight && insights) {
+//         industryInsight = await tx.industryInsight.create({
+//           data: {
+//             industry: data.industry,
+//             ...insights,
+//             nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+//           },
+//         });
+//       }
+
+//       const updatedUser = await tx.user.update({
+//         where: { id: user.id },
+//         data: {
+//           industry: data.industry,
+//           experience: data.experience,
+//           bio: data.bio,
+//           skills: data.skills,
+//         },
+//       });
+
+//       return { updatedUser, industryInsight };
+//     });
+
+//     return { success: true, ...result };
+
+//   } catch (error) {
+
+//   console.error("FULL ERROR OBJECT:", error);
+
+//   const message =
+//     error instanceof Error
+//       ? error.message
+//       : JSON.stringify(error);
+
+//   throw new Error(message);
+// }
+
+// }
+
+// /* ================================
+//    ONBOARDING STATUS
+// ================================ */
+
+// export async function getUserOnboardingStatus() {
+
+//   const { userId } = await auth();
+//   if (!userId) throw new Error("Unauthorized");
+
+//   const user = await db.user.findUnique({
+//     where: { clerkUserId: userId },
+//   });
+
+//   if (!user) throw new Error("User not found");
+
+//   return {
+//     isOnboarded: !!user.industry,
+//   };
+// }
+
+
+"use server";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-
-/* ================================
-   CALL GEMINI THROUGH API ROUTE
-================================ */
-
+// OpenRouter directly instead of @google/generative-ai to bypass limit:0
 export const generateAIInsights = async (industry) => {
-
   const prompt = `
-Analyze the current state of the ${industry} industry and provide insights in ONLY the following JSON format:
+    Analyze the current state of the ${industry} industry and provide insights in ONLY the following JSON format without any additional notes or explanations:
+    {
+      "salaryRanges": [
+        { "role": "string", "min": number, "max": number, "median": number, "location": "string" }
+      ],
+      "growthRate": number,
+      "demandLevel": "High" | "Medium" | "Low",
+      "topSkills": ["skill1", "skill2"],
+      "marketOutlook": "Positive" | "Neutral" | "Negative",
+      "keyTrends": ["trend1", "trend2"],
+      "recommendedSkills": ["skill1", "skill2"]
+    }
+    
+    IMPORTANT: Return ONLY the JSON. No additional text, notes, or markdown formatting.
+    Include at least 5 common roles for salary ranges.
+    Growth rate should be a percentage.
+    Include at least 5 skills and trends.
+  `;
 
-{
-  "salaryRanges": [
-    { "role": "string", "min": number, "max": number, "median": number, "location": "string" }
-  ],
-  "growthRate": number,
-  "demandLevel": "High" | "Medium" | "Low",
-  "topSkills": ["skill1", "skill2"],
-  "marketOutlook": "Positive" | "Neutral" | "Negative",
-  "keyTrends": ["trend1", "trend2"],
-  "recommendedSkills": ["skill1", "skill2"]
-}
-
-IMPORTANT:
-Return ONLY JSON.
-No markdown.
-No explanation.
-Include at least 5 roles, skills and trends.
-`;
-
-  const baseUrl =
-    process.env.APP_URL || "http://localhost:3000";
-
-  const res = await fetch(`${baseUrl}/api/gemini`, {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    cache: "no-store",
     headers: {
-      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({
+      model: "openrouter/free",
+      messages: [{ role: "user", content: prompt }]
+    })
   });
 
-  let data;
+  const result = await response.json();
 
-  try {
-    data = await res.json();
-  } catch (err) {
-    console.error("Gemini invalid JSON response");
-    throw new Error("Gemini response parsing failed");
+  if (!response.ok || result.error) {
+    console.error("OpenRouter Error:", result);
+    throw new Error(`OpenRouter API failed: ${result.error?.message || "Unknown error"}`);
+  }
+  if (!result.choices || result.choices.length === 0) {
+    console.error("OpenRouter empty response:", result);
+    throw new Error("OpenRouter returned an empty response. Please try again.");
   }
 
-  // if (!res.ok) {
-  //   console.error("Gemini API Route Error:", data);
-  // }
-
-  if (!res.ok) {
-  console.error("❌ Gemini API Route Error:", data);
-
-  throw new Error(
-    data?.error?.message ||
-    JSON.stringify(data) ||
-    "Gemini API failed"
-  );
-}
-if (!data?.result) {
-  console.error("❌ Empty Gemini response:", data);
-  throw new Error("Gemini returned empty response");
-}
-
-  // if (!data?.result) {
-  //   throw new Error("Empty Gemini response");
-  // }
-
-  const cleanedText = data.result
-    .replace(/```(?:json)?/g, "")
-    .replace(/```/g, "")
-    .trim();
-
-  let parsed;
-
-  try {
-    parsed = JSON.parse(cleanedText);
-  } catch (err) {
-    console.error("Invalid Gemini JSON:", cleanedText);
-    throw new Error("Gemini returned invalid JSON");
+  const text = result.choices[0].message?.content || "";
+  
+  // Safely extract the JSON block in case the free model added conversational text
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("AI returned invalid JSON format:", text);
+    throw new Error("AI did not return valid JSON. Please try again.");
   }
 
-  return parsed;
+  const cleanedText = jsonMatch[0].trim();
+  const parsed = JSON.parse(cleanedText);
+  
+  return {
+    ...parsed,
+    demandLevel: parsed.demandLevel?.toUpperCase(),
+    marketOutlook: parsed.marketOutlook?.toUpperCase(),
+  };
 };
 
-/* ================================
-   GET INDUSTRY INSIGHTS
-================================ */
-
 export async function getIndustryInsights() {
-
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
-    include: { industryInsight: true },
+    include: {
+      industryInsight: true,
+    },
   });
 
   if (!user) throw new Error("User not found");
 
-  // Generate only if missing
   if (!user.industryInsight) {
-
     const insights = await generateAIInsights(user.industry);
 
     const industryInsight = await db.industryInsight.create({
@@ -202,95 +391,4 @@ export async function getIndustryInsights() {
   }
 
   return user.industryInsight;
-}
-
-/* ================================
-   UPDATE USER PROFILE
-================================ */
-
-export async function updateUser(data) {
-
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
-  const user = await db.user.findUnique({
-    where: { clerkUserId: userId },
-  });
-
-  if (!user) throw new Error("User not found");
-
-  try {
-
-    // ✅ Check if industry insight exists
-    let industryInsight = await db.industryInsight.findUnique({
-      where: { industry: data.industry },
-    });
-
-    // ✅ Generate AI OUTSIDE transaction
-    let insights = null;
-
-    if (!industryInsight) {
-      insights = await generateAIInsights(data.industry);
-    }
-
-    // ✅ Only DB operations inside transaction
-    const result = await db.$transaction(async (tx) => {
-
-      if (!industryInsight && insights) {
-        industryInsight = await tx.industryInsight.create({
-          data: {
-            industry: data.industry,
-            ...insights,
-            nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          },
-        });
-      }
-
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          industry: data.industry,
-          experience: data.experience,
-          bio: data.bio,
-          skills: data.skills,
-        },
-      });
-
-      return { updatedUser, industryInsight };
-    });
-
-    return { success: true, ...result };
-
-  } catch (error) {
-
-  console.error("FULL ERROR OBJECT:", error);
-
-  const message =
-    error instanceof Error
-      ? error.message
-      : JSON.stringify(error);
-
-  throw new Error(message);
-}
-
-}
-
-/* ================================
-   ONBOARDING STATUS
-================================ */
-
-export async function getUserOnboardingStatus() {
-
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
-  const user = await db.user.findUnique({
-    where: { clerkUserId: userId },
-  });
-
-  if (!user) throw new Error("User not found");
-
-  return {
-    isOnboarded: !!user.industry,
-  };
 }

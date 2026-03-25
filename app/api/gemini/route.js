@@ -68,36 +68,32 @@ export async function POST(req) {
       );
     }
 
-    // ✅ WORKING MODEL (free tier supported)
-    const url =
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // ✅ USING OPENROUTER COMPLETELY FREE TIER
+    const url = "https://openrouter.ai/api/v1/chat/completions";
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
+        model: "openrouter/free",
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("❌ Gemini API ERROR:", data);
+      console.error("❌ OpenRouter API ERROR:", data);
       return NextResponse.json(
         { error: data },
         { status: 500 }
       );
     }
 
-    const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data?.choices?.[0]?.message?.content;
 
     if (!text) {
       return NextResponse.json(
