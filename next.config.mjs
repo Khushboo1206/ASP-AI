@@ -19,8 +19,8 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: false, // ✅ disables Turbopack
+  turbopack: {
+    root: "c:/Users/LENOVO/aspai",
   },
   images: {
     remotePatterns: [
@@ -33,5 +33,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
-

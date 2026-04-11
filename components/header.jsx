@@ -63,7 +63,7 @@ export const Header = async() => {
 </DropdownMenu>
  </SignedIn>
       <SignedOut>
-      <SignInButton>
+      <SignInButton mode="modal" asChild>
         <Button variant='outline'>Sign In</Button>
       </SignInButton>
       </SignedOut>
