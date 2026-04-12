@@ -2,11 +2,40 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { revalidatePath } from "next/cache";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error("GEMINI_API_KEY is missing. Add your OpenRouter API key to .env.");
+}
+
+async function openRouterChat(prompt) {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "openrouter/free",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const result = await response.json();
+  if (!response.ok || result.error) {
+    console.error("OpenRouter Error:", result);
+    throw new Error(`OpenRouter API failed: ${result.error?.message || "Unknown error"}`);
+  }
+
+  const text = result?.choices?.[0]?.message?.content;
+  if (!text) {
+    console.error("OpenRouter returned empty response:", result);
+    throw new Error("Failed to improve content");
+  }
+
+  return text;
+}
 
 export async function saveResume(content) {
   const { userId } = await auth();
@@ -86,10 +115,8 @@ export async function improveWithAI({ current, type }) {
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const improvedContent = response.text().trim();
-    return improvedContent;
+    const improvedContent = await openRouterChat(prompt);
+    return improvedContent.trim();
   } catch (error) {
     console.error("Error improving content:", error);
     throw new Error("Failed to improve content");

@@ -24,9 +24,11 @@ export default function StatsCards({ assessments }) {
     );
   };
 
+  const cardStyle = "bg-transparent border border-slate-200/70 shadow-none";
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card>
+      <Card className={cardStyle}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Average Score</CardTitle>
           <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -39,7 +41,7 @@ export default function StatsCards({ assessments }) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cardStyle}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Questions Practiced
@@ -52,7 +54,7 @@ export default function StatsCards({ assessments }) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cardStyle}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Latest Score</CardTitle>
           <Target className="h-4 w-4 text-muted-foreground" />

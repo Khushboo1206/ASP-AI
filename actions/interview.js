@@ -2,10 +2,39 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error("GEMINI_API_KEY is missing. Add your OpenRouter API key to .env.");
+}
+
+async function openRouterChat(prompt) {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "openrouter/free",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const result = await response.json();
+  if (!response.ok || result.error) {
+    console.error("OpenRouter Error:", result);
+    throw new Error(`OpenRouter API failed: ${result.error?.message || "Unknown error"}`);
+  }
+
+  const text = result?.choices?.[0]?.message?.content;
+  if (!text) {
+    console.error("OpenRouter returned empty response:", result);
+    throw new Error("Failed to generate quiz questions");
+  }
+
+  return text;
+}
 
 export async function generateQuiz() {
     const { userId } = await auth();
@@ -42,16 +71,14 @@ export async function generateQuiz() {
   `;
 
     try {
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        const text = await openRouterChat(prompt);
         const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
         const quiz = JSON.parse(cleanedText);
 
         return quiz.questions;
     } catch (error) {
         console.error("Error generating quiz:", error);
-        throw new Error("Failed to generate quiz questions");
+        throw new Error(error.message || "Failed to generate quiz questions");
     }
 }
 
@@ -98,9 +125,8 @@ export async function saveQuizResult(questions, answers, score) {
     `;
 
         try {
-            const tipResult = await model.generateContent(improvementPrompt);
-
-            improvementTip = tipResult.response.text().trim();
+            const tipText = await openRouterChat(improvementPrompt);
+            improvementTip = tipText.trim();
             console.log(improvementTip);
         } catch (error) {
             console.error("Error generating improvement tip:", error);
@@ -109,7 +135,7 @@ export async function saveQuizResult(questions, answers, score) {
     }
 
     try {
-        const assessment = await db.assessment.create({
+        const assessment = await db.assesment.create({
             data: {
                 userId: user.id,
                 quizScore: score,
@@ -137,7 +163,7 @@ export async function getAssessments() {
     if (!user) throw new Error("User not found");
 
     try {
-        const assessments = await db.assessment.findMany({
+        const assessments = await db.assesment.findMany({
             where: {
                 userId: user.id,
             },

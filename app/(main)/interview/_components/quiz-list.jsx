@@ -23,9 +23,11 @@ export default function QuizList({ assessments }) {
   const router = useRouter();
   const [selectedQuiz, setSelectedQuiz] = useState(null);
 
+  const cardStyle = "bg-transparent border border-slate-200/70 shadow-none";
+
   return (
     <>
-      <Card>
+      <Card className={cardStyle}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -46,7 +48,7 @@ export default function QuizList({ assessments }) {
             {assessments?.map((assessment, i) => (
               <Card
                 key={assessment.id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="bg-transparent border border-slate-200/70 shadow-none cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => setSelectedQuiz(assessment)}
               >
                 <CardHeader>
