@@ -1,4 +1,11 @@
-const apiKey = "AIzaSyCgAWtDATlh6ZERYNIW6ZXfogzGxBeIgyw";
+require("dotenv").config({ path: ".env" });
+
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.error("GEMINI_API_KEY is missing. Add it to .env or .env.local.");
+  process.exit(1);
+}
+
 const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
 fetch(url, {

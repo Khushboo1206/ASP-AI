@@ -47,9 +47,6 @@ import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
-    // 🔍 DEBUG: check if key is loading
-    console.log("Loaded GEMINI KEY:", process.env.GEMINI_API_KEY);
-
     const { prompt } = await req.json();
 
     if (!prompt) {
